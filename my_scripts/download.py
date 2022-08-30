@@ -1,20 +1,10 @@
-import sys
-sys.path.append('/home/kkxw544/deepfrag')
-sys.path.append('/home/kkxw544/miniconda3/envs/deepfrag_1/lib/python3.7/site-packages/')
-import re
+'''
+Script to download and prepare data for applying evaluation and reconstruction methods
+'''
 
-import torch
+
 import prody
-import py3Dmol
-from openbabel import openbabel 
-from rdkit import Chem
-from rdkit.Chem import rdmolops
-from rdkit.Chem import Draw, AllChem
-import numpy as np
-import time
-import h5py
-from tqdm.notebook import tqdm
-import matplotlib.pyplot as plt
+from openbabel import openbabel
 import urllib.request
 import pickle
 
@@ -25,7 +15,11 @@ RCSB_DOWNLOAD = 'https://files.rcsb.org/download/%s.pdb'
 path = '/projects/mai/users/kkxw544_magdalena/deepfrag_data/%s'
 
 
-def prep_data(pdb_id): 
+def download_data(pdb_id): 
+
+    '''
+    Method to download specified pdb-files and extract ligand-ids
+    '''
 
     try:
         urllib.request.urlretrieve(RCSB_DOWNLOAD % pdb_id, path % pdb_id + '.pdb')
@@ -45,12 +39,20 @@ def prep_data(pdb_id):
     
     return lig_list
 
-def download_data(pdb_list):
+def prep_data(pdb_list):
+
+    '''
+    Method to prepare data for evaluation, seperate receptor and filter out water molecules,
+    save receptor data as pdb file and ligand data as sdf file.
+    Also creates a list of protein ligand tuples that can be used as an input for various methods.
+    '''
+
+    #count allows you to continue script from certain position if it aborts
+    count = 0
     data_list = []
-    count = 500
     for i in pdb_list:
         try:
-            lig_list = prep_data(i)
+            lig_list = download_data(i)
             for j in lig_list:
                 if len(j) == 3 and j != 'HOH':
                     try:
@@ -76,8 +78,8 @@ def download_data(pdb_list):
                         print('ERROR')
                         continue
         
-    with open(path + 'protein_ligand_complexes_1', 'wb') as f:
+    with open(path + 'protein_ligand_complexes', 'wb') as f:
         pickle.dump(data_list, f)                
 
 pdb_list = mp.TRAIN + mp.VAL
-x = download_data(pdb_list[500:])
+x = prep_data(pdb_list)

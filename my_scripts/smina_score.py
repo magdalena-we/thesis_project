@@ -1,64 +1,74 @@
+'''
+Script for scoring protein-ligand-complexes for their binding affinity,
+using smina.
+'''
+
 import subprocess
 import urllib.request
-import pandas as pd
-from config import moad_partitions as md
+import argparse
+import pickle
+import re
+import csv
+import sys 
+import gc
 
-RCSB_DOWNLOAD = 'https://files.rcsb.org/download/%s.pdb'
-LIG_DOWNLOAD = 'https://files.rcsb.org/ligands/download/%s_model.sdf'
-path = '/home/kkxw544/deepfrag/temp/%s'
+path = '/projects/mai/users/kkxw544_magdalena/deepfrag_data/%s'
 
-def prep_data(pdb_id): 
+def affinity_scores(pdb_list, save_path):
 
-    try:
-        urllib.request.urlretrieve(RCSB_DOWNLOAD % pdb_id, path % pdb_id + '.pdb')
-    
-        file = open(path % pdb_id + '.pdb', 'r')
-        data = file.readlines()
-        lig_list = []
-        for line in data:
-            if line.startswith('HET '):
-                lig_list.append(line.split()[1])
-        lig_list = list(set(lig_list))
-
-    except Exception:
-        print(pdb_id, 'ERROR')
-        return
-    
-    return lig_list
-
-def apply_workflow():
-    fin_out_list = []
-    moad = [md.TEST, md.VAL, md.TRAIN]
-    for m in moad:
-        for i in m:
-            lig_list = prep_data(i)
-            try: 
-                for j in lig_list:
-                    if len(j) == 3 and j != 'HOH':
-                        try:
-                            urllib.request.urlretrieve(LIG_DOWNLOAD % j, path % i + j + '.sdf')
-                            output = str(subprocess.check_output(["./smina.static", "--score_only", "-r" + path % i + '.pdb', "-l" + path % i + j + '.sdf'], cwd='/home/kkxw544/smina-code/'))
-                            final_output = list(prep_output(output))
-                            append = final_output.append
-                            append(i)
-                            append(j)
-                            print(final_output)
-                            fin_out_list.append(final_output)
-                        except Exception:
-                            print(j, 'ERROR')
-                            continue
+    '''
+    Calling on smina and appending desired output to a dataframe.
+    '''
+    with open(save_path, 'a') as f:
+        for i in pdb_list[10:]:
+            prot = i[0]
+            lig = i[1]
+            fin_output = []
+            try:
+                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + 'lig.sdf'], cwd='/home/kkxw544/')
+                fin_output.append(prep_output(output))
+                fin_output.append(prot)
+                fin_output.append(lig)
             except Exception:
-                print('ERROR')
+                print(prot, lig, 'ERROR', flush=True)
                 continue
-    df = pd.DataFrame(fin_out_list)
-    df.to_csv('/home/kkxw544/deepfrag/smina_results.csv', sep = ',')
+            finally:
+                writer = csv.writer(f)
+                writer.writerow(fin_output)
+                f.flush()
+                gc.collect()
 
 
 def prep_output(output):
-    output_1 = output.decode('utf-8').split('\\n')
-    output_2 = [x for x in output_1 if 'Affinity' in x]
-    output_3 = output_2.extract(r'(\d+.\d+)').astype('float')
 
-    return output_3
+    '''
+    Filtering the output from smina.
+    '''
 
-x = apply_workflow()
+    output = output.decode('utf-8').split('\n')
+    output = [x for x in output if 'Affinity' in x]
+    output = re.findall(r'(\d+\.\d+)', output[0])
+    output = [float(x) for x in output]
+    output = output[0]
+
+    return output
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--pdbs', help='path to list of protein ligand tuples')
+    parser.add_argument('--save_path', help='path to save the output file')
+
+
+    args = parser.parse_args()
+    args_dict = args.__dict__
+
+    # Initialize.
+    path_to_data = args_dict['pdbs']
+    with open(path_to_data, 'rb') as f: 
+        pdb_list = pickle.load(f)
+    save_path = args_dict['save_path']
+    scores = affinity_scores(pdb_list, save_path)
+
+
+if __name__=='__main__':
+    main()

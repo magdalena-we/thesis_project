@@ -1,5 +1,9 @@
+'''
+Script for comparing protein sequences for their tanimoto similarity.
+'''
+
 import urllib.request
-import config.moad_partitions as mp
+import moad_partitions as mp
 import pandas as pd
 
 
@@ -15,14 +19,22 @@ class Tanimoto:
         self.list2 = list2
         self.filename = filename
 
+
     def download_pdb(self, pdb_id):
+        
+        '''Downloads the fasta-file by pdb-id'''
+        
         try:
             urllib.request.urlretrieve(RCSB_DOWNLOAD % pdb_id, path % pdb_id)
         except Exception:
             print(pdb_id, "ERROR")
             return
     
+    
     def prep_data(self, pdb_id):
+    
+        '''Extracts the protein sequence from the fasta-file.'''
+    
         file = open(path % pdb_id, "r")
         data = file.read()
         data = data.split('\n')
@@ -39,6 +51,11 @@ class Tanimoto:
 
     
     def compare_seq(self, seq1, seq2):
+    
+        '''Comparison of the shorter sequence against the longer sequence,
+        shifting its position by one character after every iteration, 
+        giving back the highest similarity value'''
+
         counter = 0
         sequence = None
         pattern = None
@@ -69,6 +86,9 @@ class Tanimoto:
         return result
 
     def out(self):
+
+        '''Coordination of input, saving output to csv-file'''
+
         full_list = []
 
         for i in self.list1:
