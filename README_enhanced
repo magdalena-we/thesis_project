@@ -1,0 +1,26 @@
+DeepFrag has been enhanced, additional functionality was added. It is possible to reconstruct entire ligands from fragments predicted by DeepFrag.
+
+New scripts:
+- search.py
+- tan_simi.py
+- download.py
+- free_test.py
+- test.py
+- sminatest.py
+- sminatest_eval.py
+- smina_correlation.py
+- sminacor_eval.py
+- ligand_reconstruction.py
+
+Scripts will be shortly documented here, there is some further documentation in the scpripts themselves and the thesis may contain helpful information.
+
+search.py:
+This is a very short and simple script for sorting lists of pdb-ids according to the partition (TRAIN, VAL, TEST, specified in the paper) of the MOAD-Dataset, unknown pdb-ids will be given back in a seperate list.
+
+tan_simi.py:
+This is an algorithm to compare protein sequences for their Tanimoto similarity.
+
+download.py:
+Downloads and prepares files from RSCB for further use, input is a list of pdb-ids. It also creates a file with a list of tuples containing protein- and ligand-ids. This is used as input for other scripts.
+
+free_test.py:
