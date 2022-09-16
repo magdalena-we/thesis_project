@@ -24,3 +24,6 @@ download.py:
 Downloads and prepares files from RSCB for further use, input is a list of pdb-ids. It also creates a file with a list of tuples containing protein- and ligand-ids. This is used as input for other scripts.
 
 free_test.py:
+
+ligand_reconstruction.py:
+At the moment it uses the model smin4, the most succesful model trained for 50 Epochs on complexes scoring over 400 for binding affinity. This can be changed in the main function. Further arguments could be added to allow to choose that when executing the script.
