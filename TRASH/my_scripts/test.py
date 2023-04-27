@@ -12,15 +12,8 @@ from leadopt.metrics import cos, top_k_acc
 from leadopt.model_conf import LeadoptModel, DIST_FN, MODELS
 from leadopt.data_util import FingerprintDataset
 
-#Choose device ###test###
-USE_CPU = True
-device = torch.device('cpu') if USE_CPU else torch.device('cuda')
 
 def load_all_fingerprints(args_dict, model):
-
-    '''
-    Method to load all possible fragment fingerprints, needed for comparing the continuos predicted fingerprint and determining the closest fragments to it.
-    '''
 
     print("Loading full dataset")
     train_dat, val_dat = model.load_data()
@@ -49,8 +42,8 @@ def test(predicted_fp, correct_fp, all_fp):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--run_test', default=False, action="store_true", help='')
-    parser.add_argument('--save_path', help='location to save the fingerprint files')
-    parser.add_argument('--model', help='specify the model to be used for testing')
+    parser.add_argument('--save_path', help='location to save the model')
+    parser.add_argument('--configuration', help='specify the model to be used for testing')
     parser.add_argument('--samples_per_example', type=int)
 
     subparsers = parser.add_subparsers(dest='version')
@@ -65,7 +58,7 @@ def main():
  
     # Initialize model.
     model_type = args_dict['version']
-    model = LeadoptModel.load(args.model, device=device) #torch.device('cuda')
+    model = LeadoptModel.load(args.configuration, device=torch.device('cuda'))
     
     #call on run_test method from model conf, saves file of predicted and correct fingerprint arrays
     if args.run_test:

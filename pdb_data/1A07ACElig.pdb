@@ -1,0 +1,7 @@
+REMARK Selection 'resname ACE'
+HETATM    1  C   ACE C 100      41.858   7.688  24.757  1.00 23.55           C  
+HETATM    2  O   ACE C 100      41.794   8.906  24.854  1.00 21.37           O  
+HETATM    3  CH3 ACE C 100      41.806   6.775  25.963  1.00 23.69           C  
+HETATM    4  C   ACE D 100      44.237  -8.212  37.735  1.00 30.78           C  
+HETATM    5  O   ACE D 100      44.733  -7.088  37.682  1.00 32.10           O  
+HETATM    6  CH3 ACE D 100      44.563  -9.231  36.660  1.00 28.86           C  

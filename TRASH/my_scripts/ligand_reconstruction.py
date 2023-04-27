@@ -36,14 +36,14 @@ def tosdf(x):
 
 def iterative_ligand_reconstruction(pdb_id, resname, spec_model): 
 
-    model = LeadoptModel.load(spec_model, device=device)
+    model = LeadoptModel.load('/home/kkxw544/deepfrag/models/' + spec_model, device=device)
 
     rec_coords, rec_types = util.load_receptor_ob(path % pdb_id + resname + 'rec.pdb')
     rec = Chem.MolFromPDBFile(path % pdb_id + resname + 'rec.pdb')
 
     lig = Chem.MolFromMolFile(path % pdb_id + resname + 'lig.sdf')
 
-    with h5py.File('/projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/fingerprints.h5', 'r') as f:
+    with h5py.File('/home/kkxw544/deepfrag/fingerprints.h5', 'r') as f:
         f_smiles = f['smiles'][()]
         f_fingerprints = f['fingerprints'][()].astype(np.float)
     
@@ -81,9 +81,9 @@ def iterative_ligand_reconstruction(pdb_id, resname, spec_model):
             dist_fn = DIST_FN[model._args['dist_fn']]
             dist = dist_fn(
                 torch.Tensor(avg_fp).unsqueeze(0),
-                torch.Tensor(f_fingerprints)).cuda()
+                torch.Tensor(f_fingerprints))
 
-            dist = list(dist.cpu().numpy())
+            dist = list(dist.numpy())
             scores = list(zip(f_smiles, dist))
             scores = sorted(scores, key=lambda x:x[1])
 
@@ -111,9 +111,9 @@ def iterative_ligand_reconstruction(pdb_id, resname, spec_model):
     return bestlig
 
 
-def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path): 
+def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model): 
 
-    model = LeadoptModel.load(spec_model, device=device)
+    model = LeadoptModel.load('/home/kkxw544/deepfrag/models/' + spec_model, device=device)
 
     rec_coords, rec_types = util.load_receptor_ob(path % pdb_id + lig_id + 'rec.pdb')
     rec = Chem.MolFromPDBFile(path % pdb_id + lig_id + 'rec.pdb')
@@ -121,12 +121,12 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
     lig = Chem.MolFromMolFile(path % pdb_id + lig_id + 'lig.sdf')
 
     img = Draw.MolsToGridImage([to2d(lig)])
-    img = img.save(save_path + pdb_id + lig_id + '.jpeg')
+    img = img.save('/home/kkxw544/deepfrag/results/' + pdb_id + lig_id + '.jpeg')
 
-    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + 'lig.sdf'], cwd='/projects/mai/users/kkxw544_magdalena/')
+    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + 'lig.sdf'], cwd='/home/kkxw544/')
     smina_old = prep_output(output)
 
-    with h5py.File('/projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/fingerprints.h5', 'r') as f:
+    with h5py.File('/home/kkxw544/deepfrag/fingerprints.h5', 'r') as f:
         f_smiles = f['smiles'][()]
         f_fingerprints = f['fingerprints'][()].astype(np.float)
     
@@ -164,9 +164,9 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
             dist_fn = DIST_FN[model._args['dist_fn']]
             dist = dist_fn(
                 torch.Tensor(avg_fp).unsqueeze(0),
-                torch.Tensor(f_fingerprints)).cuda()
+                torch.Tensor(f_fingerprints))
 
-            dist = list(dist.cpu().numpy())
+            dist = list(dist.numpy())
             scores = list(zip(f_smiles, dist))
             scores = sorted(scores, key=lambda x:x[1])
 
@@ -175,7 +175,7 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
             lig = embed_fragment(rec, parent, fragment)
             lig_sdf = tosdf(lig)
             print(lig_sdf, file=open(path % pdb_id + lig_id + '_temp.sdf', 'w+'))
-            output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_temp.sdf'], cwd='/projects/mai/users/kkxw544_magdalena/')
+            output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_temp.sdf'], cwd='/home/kkxw544/')
             smina_new = prep_output(output)
 
             kk = True
@@ -197,9 +197,9 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
 
 def prep_liglist(pdb_id, lig_id, spec_model, k): 
 
-    model = LeadoptModel.load(spec_model, device=device)
+    model = LeadoptModel.load('/home/kkxw544/deepfrag/models/' + spec_model, device=device)
 
-    with h5py.File('/projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/fingerprints.h5', 'r') as f:
+    with h5py.File('/home/kkxw544/deepfrag/fingerprints.h5', 'r') as f:
         f_smiles = f['smiles'][()]
         f_fingerprints = f['fingerprints'][()].astype(np.float)
 
@@ -241,9 +241,9 @@ def prep_liglist(pdb_id, lig_id, spec_model, k):
         dist_fn = DIST_FN[model._args['dist_fn']]
         dist = dist_fn(
             torch.Tensor(avg_fp).unsqueeze(0),
-            torch.Tensor(f_fingerprints)).cuda()
+            torch.Tensor(f_fingerprints))
 
-        dist = list(dist.cpu().numpy())
+        dist = list(dist.numpy())
         scores = list(zip(f_smiles, dist))
         scores = sorted(scores, key=lambda x:x[1])
 
@@ -275,7 +275,7 @@ def topk_ligand_reconstruction(prot, lig, spec_model, k):
         for j in range(len(lig_list)):
             lig_sdf = tosdf(lig_list[j][i])
             print(lig_sdf, file=open(path % 'temp2' + '.sdf', 'w+'))
-            output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % 'temp2' + '.sdf'], cwd='/projects/mai/users/kkxw544_magdalena/')
+            output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % 'temp2' + '.sdf'], cwd='/home/kkxw544/')
             frag_scores.append(prep_output(output))
         scores.append(frag_scores)
     
@@ -432,30 +432,30 @@ def prep_output(output):
     return output
 
 
-def draw_iterative(pdb_id, lig_id, spec_model, save_path):
+def draw_iterative(pdb_id, lig_id, spec_model):
     x = iterative_ligand_reconstruction(pdb_id, lig_id, spec_model)
     out = tosdf(x)
     print(out, file=open(path % pdb_id + lig_id + '_mult.sdf', 'w+'))
     output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_mult.sdf'], cwd='/home/kkxw544/')
     smina_score = prep_output(output)
     img = Draw.MolsToGridImage([to2d(x)])
-    img = img.save(save_path + pdb_id + lig_id + '_multilig.jpeg')
+    img = img.save('/home/kkxw544/deepfrag/results/' + pdb_id + lig_id + '_multilig.jpeg')
 
     return smina_score
 
-def draw_interactive(pdb_id, lig_id, spec_model, save_path):
+def draw_interactive(pdb_id, lig_id, spec_model, savepath):
     x = interactive_ligand_reconstruction(pdb_id, lig_id, spec_model)
     out = tosdf(x)
     print(out, file=open(path % pdb_id + lig_id + '_intact.sdf', 'w+'))
     output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_intact.sdf'], cwd='/home/kkxw544/')
     smina_score = prep_output(output)
     img = Draw.MolsToGridImage([to2d(x)])
-    img = img.save(save_path + pdb_id + lig_id + '_intact.jpeg')
+    img = img.save(savepath)
 
     return smina_score
 
 
-def draw_topk(pdb_id, lig_id, spec_model, save_path):
+def draw_topk(pdb_id, lig_id, spec_model):
     x = topk_ligand_reconstruction(pdb_id, lig_id, spec_model, k=5)
     out = tosdf(x)
     print(out, file=open(path % pdb_id + lig_id + '_new.sdf', 'w+'))
@@ -463,51 +463,66 @@ def draw_topk(pdb_id, lig_id, spec_model, save_path):
     output = prep_output(output)
     smina_score = prep_output(output)
     img = Draw.MolsToGridImage([to2d(x)])
-    img = img.save(save_path + pdb_id + lig_id + '_newtopk.jpeg')
+    img = img.save('/home/kkxw544/deepfrag/results/' + pdb_id + lig_id + '_newtopk.jpeg')
 
     return smina_score
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pdbs', help='path to list of protein ligand tuples')
-    parser.add_argument('--save_path', help='path to save the output folder')
-    parser.add_argument('--model', help='specify the model to be tested')
+'''def main():
 
-    args = parser.parse_args()
-    args_dict = args.__dict__
+    protlig_list = ['1A1CDIX', '1BDUFMT', '1AMQPMP', '1AL6OAA', '1AKUSO4', '1B9TRAI', '1C7EFMN', '1C1XIPA', '1AX1BGC', '13GSSAS', '1AX1XYP', '1AX2GAL', '1BU5SO4', '1AKTFMN', '1AXZBMA', '1AXZMAN', '1BD0IN5', '1BWKFMN', '1AX0MAN', '1AX1FUC', '1AX2FUC', '1BAGGLC', '1AKVFMN', '1BNUAL3', '1BG0NO3', '1B9SFDI', '1AIQCB3', '1B4ZACT', '1BWCFAD', '1B32ACT', '1AKWFMN', '1C3EGAR', '1AVNHSM', '1AX2MAN', '1B4BARG', '1AX0A2G', '1BCDFMS', '1AIQCXM', '1AM6HAE', '1AWFGR4', '1C3ENHR', '1AZLFMN', '1BR5NEO', '1B3HALC', '1C21MET', '154LNAG', '1B11SO4', '1A1BPTR', '1BNWTPD', '1AXZGLA', '1C1XHFA', '13GSGSH', '1AXZFUC', '1B51IUM', '1AKVSO4', '1BU42GP', '10GSVWW', '1C1XPO4', '1AX0FUC', '1C1EMLT', '1AL8FMN', '1AKQFMN', '12GS0HH', '1AX2BMA', '1A2KSO4', '1BG0DAR', '1BU5RBF', '1C7FFMN', '1A1AACE', '1AX1MAN', '1AX1GAL', '1AX1BMA', '1BWCAJ3', '1B2MU34', '1C27NLP', '1AX0BMA', '1AX0XYP']
 
-    save_path = args_dict['save_path']
-    spec_model = args_dict['model']
+    for i in protlig_list:
 
-    # Initialize.
-    path_to_data = args_dict['pdbs']
-    with open(path_to_data, 'rb') as f: 
-        pdb_list = pickle.load(f)
-    
-    for i in pdb_list:
-        
-        try:
-            x = draw_iterative(i[0], i[1], spec_model, save_path)
-            print(x)
-            y = draw_interactive(i[0], i[1], spec_model, save_path)
-            print(y)
-            #z = draw_topk(i[0], i[1], spec_model, save_path)
-            #print(z)
-        except Exception:
-            continue
+        x = draw_iterative(i[:4], i[4:], 'fin1_smin5')
+        print(x))
+        y = draw_interactive(i[:4], i[4:], 'fin1_smin5')
+        print(y)
 
-        df = pd.read_csv(save_path + 'smina_scores.csv', names=['Affinity', 'Protein', 'Ligand'], header=None)
+        df = pd.read_csv('/home/kkxw544/deepfrag/results/sminascores_MOAD.csv', names=['Affinity', 'Protein', 'Ligand'], header=None)
     
         for j in range(len(df['Protein'])):
             df['Protein'][j] = df['Protein'][j] + df['Ligand'][j]
             if df['Protein'][j] == i:
                 a = df['Affinity'][j]
         
-        with open(save_path + 'ligrec_s5.csv', 'a') as f:
+        with open('/home/kkxw544/deepfrag/results/ligrec_s5.csv', 'a') as f:
             writer = csv.writer(f)
             writer.writerow([i, a, x, y])
 
+    #z = draw_topk('1A0J', 'BEN', 'fin1_smin5')
+    #print(z)
+    #z2 = draw_topk('1A0J', 'BEN', 'fin1_smin5')
+    #print(z2)
+    #z1 = draw_topk('10GS', 'VWW', 'fin1_smin5')
+    #print(z1)
+    
+    print(x, y)
+    
+
+if __name__=='__main__':
+    main()'''
+
+def main():
+
+    #protlig_list = ['1A1CDIX', '1BDUFMT', '1AMQPMP', '1AL6OAA', '1AKUSO4', '1B9TRAI', '1C7EFMN', '1C1XIPA', '1AX1BGC', '13GSSAS', '1AX1XYP', '1AX2GAL', '1BU5SO4', '1AKTFMN', '1AXZBMA', '1AXZMAN', '1BD0IN5', '1BWKFMN', '1AX0MAN', '1AX1FUC', '1AX2FUC', '1BAGGLC', '1AKVFMN', '1BNUAL3', '1BG0NO3', '1B9SFDI', '1AIQCB3', '1B4ZACT', '1BWCFAD', '1B32ACT', '1AKWFMN', '1C3EGAR', '1AVNHSM', '1AX2MAN', '1B4BARG', '1AX0A2G', '1BCDFMS', '1AIQCXM', '1AM6HAE', '1AWFGR4', '1C3ENHR', '1AZLFMN', '1BR5NEO', '1B3HALC', '1C21MET', '154LNAG', '1B11SO4', '1A1BPTR', '1BNWTPD', '1AXZGLA', '1C1XHFA', '13GSGSH', '1AXZFUC', '1B51IUM', '1AKVSO4', '1BU42GP', '10GSVWW', '1C1XPO4', '1AX0FUC', '1C1EMLT', '1AL8FMN', '1AKQFMN', '12GS0HH', '1AX2BMA', '1A2KSO4', '1BG0DAR', '1BU5RBF', '1C7FFMN', '1A1AACE', '1AX1MAN', '1AX1GAL', '1AX1BMA', '1BWCAJ3', '1B2MU34', '1C27NLP', '1AX0BMA', '1AX0XYP']
+    protlig_list = ['17GSGTX', '1BVI2GP', '1B9VRA2', '1AX2NDG', '1B4XPLP', '1B4XMAE', '1AXZMAN', '1BD0IN5']
+
+    for i in protlig_list:
+
+        result = [i]
+        for j in range(10):
+            y = draw_interactive(i[:4], i[4:], 'fin1_smin5', '/home/kkxw544/deepfrag/results/const_intact/' + str(i) + str(j) + '_intact.jpeg')
+            result.append(y)
+            print(y)
+        
+        with open('/home/kkxw544/deepfrag/results/const_intact.csv', 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(result)
+    
 
 if __name__=='__main__':
     main()
+
+
+#mightwannalookatitagain = ['1B6HNVA', '1C5NTYS', '1AL6HAX', '1AIAPMP']

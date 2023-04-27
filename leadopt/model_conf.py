@@ -143,7 +143,7 @@ class LeadoptModel(object):
         Set this argument to track run in wandb.
         ''')
         parser.add_argument('--moad_partition', default='moad_partitions', help='''
-        Set this argument to track run in wandb.
+        Set this argument to select a different partition/dataset.
         ''')
 
     @staticmethod
@@ -201,12 +201,6 @@ class LeadoptModel(object):
         if 'moad_partition' in self._args:
             if self._args['moad_partition'] == 'moad_partitions':
                 from config import moad_partitions as mp
-            elif self._args['moad_partition'] == 'moad_partitions_n1':
-                from config import moad_partitions_n1 as mp
-            elif self._args['moad_partition'] == 'moad_partitions_n2':
-                from config import moad_partitions_n2 as mp
-            elif self._args['moad_partition'] == 'moad_partitions_n3':
-                from config import moad_partitions_n3 as mp
             elif self._args['moad_partition'] == 'moad_200':
                 from config import moad_200 as mp
             elif self._args['moad_partition'] == 'moad_400':
@@ -503,7 +497,7 @@ class VoxelNet(LeadoptModel):
 
                 val_metrics.clear()
 
-    def run_test(self, save_path, samples_per_example, use_val=False):
+    def run_test(self, save_path, use_val=False):
         # load test dataset
         test_dat = FragmentDataset(
             self._args['fragments'],
@@ -525,7 +519,7 @@ class VoxelNet(LeadoptModel):
 
         predicted_fp = np.zeros((
             len(test_dat),
-            samples_per_example,
+            self._args['samples_per_example'],
             self._args['output_size']))
 
         smiles = [test_dat[i]['smiles'] for i in range(len(test_dat))]
@@ -534,7 +528,7 @@ class VoxelNet(LeadoptModel):
         # (example_idx, sample_idx)
         queries = []
         for i in range(len(test_dat)):
-            queries += [(i,x) for x in range(samples_per_example)]
+            queries += [(i,x) for x in range(self._args['samples_per_example'])]
 
         # run inference
         pbar = tqdm.tqdm(
@@ -560,8 +554,6 @@ class VoxelNet(LeadoptModel):
             for j in range(len(batch)):
                 example_idx, sample_idx = batch[j]
                 predicted_fp[example_idx][sample_idx] = predicted[j].detach().cpu().numpy()
-
-        predicted_fp = np.mean(predicted_fp, axis=1)        
 
         if use_val:
             np.save(os.path.join(save_path, 'val_predicted_fp.npy'), predicted_fp)
