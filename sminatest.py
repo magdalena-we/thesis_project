@@ -17,7 +17,7 @@ import sys
 
 from ligand_reconstruction import prep_liglist
 
-path = '/projects/mai/users/kkxw544_magdalena/deepfrag_data/%s'
+path = './pdb_data/%s'
 
 
 def tosdf(x):

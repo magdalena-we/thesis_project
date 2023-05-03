@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import argparse 
 
-import moad_partitions as mp
+from config import moad_partitions as mp
 
 
 def build_subset(tuple_list, x):
@@ -61,14 +61,12 @@ def main():
     args_dict = args.__dict__
     
     csv_file = args_dict['csv_file']
-    df = pd.read_csv(csv_file)
-    df. rename(columns = {'2':'Protein', '3':'Ligand'}, inplace = True)
-    df['Affinity'] = df['0'].str.extract(r'(\d+.\d+)').astype('float')
+    df = pd.read_csv(csv_file, names = ['Affinity', 'Protein', 'Ligand'])
 
     tuple_list = list(zip(df['Protein'], df['Affinity']))
     tuple_list = list(dict(sorted(tuple_list, key=lambda x: int(x[1]))).items())
     
-    threshold = args_dict['threshold']
+    threshold = float(args_dict['threshold'])
     fn = args_dict['split_fn']
     save_path = args_dict['save_path']
 

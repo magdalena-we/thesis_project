@@ -19,12 +19,12 @@ def affinity_scores(pdb_list, save_path):
     Calling on smina and appending desired output to a dataframe.
     '''
     with open(save_path, 'a') as f:
-        for i in pdb_list[10:]:
+        for i in pdb_list:
             prot = i[0]
             lig = i[1]
             fin_output = []
             try:
-                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + 'lig.sdf'], cwd='/home/kkxw544/')
+                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + 'lig.sdf'], cwd='./')
                 fin_output.append(prep_output(output))
                 fin_output.append(prot)
                 fin_output.append(lig)
