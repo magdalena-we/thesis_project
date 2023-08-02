@@ -17,7 +17,7 @@ import sys
 
 from ligand_reconstruction import prep_liglist
 
-path = '/projects/mai/users/kkxw544_magdalena/deepfrag_data/%s'
+path = './pdb_data/%s'
 
 
 def tosdf(x):
@@ -66,10 +66,7 @@ def apply_workflow(prot, lig, spec_model, k, save_path):
             writer.writerow(outer_list)                    
             f.flush()
             gc.collect()
-
-
-#x = apply_workflow('10GS', 'VWW', 'fin1_smin2', 5, '/home/kkxw544/deepfrag/results/sminacor_s2.csv')
-#print(x)   
+  
 
 def main():
     parser = argparse.ArgumentParser()

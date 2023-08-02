@@ -11,6 +11,8 @@ import subprocess
 import re
 import csv
 import pandas as pd
+import argparse
+import pickle
 
 
 from leadopt.model_conf import LeadoptModel, DIST_FN
@@ -18,9 +20,9 @@ from leadopt import grid_util
 from leadopt.data_util import REC_TYPER, LIG_TYPER
 from leadopt import util
 
-path = '/projects/mai/users/kkxw544_magdalena/deepfrag_data/%s'
+path = './pdb_data/%s'
 
-USE_CPU = False
+USE_CPU = True
 device = torch.device('cpu') if USE_CPU else torch.device('cuda')
 
 
@@ -36,6 +38,12 @@ def tosdf(x):
 
 def iterative_ligand_reconstruction(pdb_id, resname, spec_model): 
 
+    '''
+    Ligand reconstruction by applying the predicted top fragment to the parent.
+    This process is repeated until the predicted top fragments do not differ
+    from the 'original' fragment.
+    '''
+
     model = LeadoptModel.load(spec_model, device=device)
 
     rec_coords, rec_types = util.load_receptor_ob(path % pdb_id + resname + 'rec.pdb')
@@ -43,7 +51,7 @@ def iterative_ligand_reconstruction(pdb_id, resname, spec_model):
 
     lig = Chem.MolFromMolFile(path % pdb_id + resname + 'lig.sdf')
 
-    with h5py.File('/projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/fingerprints.h5', 'r') as f:
+    with h5py.File('./fingerprints.h5', 'r') as f:
         f_smiles = f['smiles'][()]
         f_fingerprints = f['fingerprints'][()].astype(np.float)
     
@@ -81,7 +89,7 @@ def iterative_ligand_reconstruction(pdb_id, resname, spec_model):
             dist_fn = DIST_FN[model._args['dist_fn']]
             dist = dist_fn(
                 torch.Tensor(avg_fp).unsqueeze(0),
-                torch.Tensor(f_fingerprints)).cuda()
+                torch.Tensor(f_fingerprints)).cpu()
 
             dist = list(dist.cpu().numpy())
             scores = list(zip(f_smiles, dist))
@@ -113,6 +121,15 @@ def iterative_ligand_reconstruction(pdb_id, resname, spec_model):
 
 def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path): 
 
+    '''
+    Ligand reconstruction by adding the top predicted fragment to the parent
+    and comparing wether it scores higher than the original ligand on 
+    application of smina. If it does the predicted fragment is kept, otherwise
+    the original ligand will be processed further. In the second step another 
+    fragment is contemplated. This step will be repeated untli all of the 
+    ligands fragments have been checked.
+    '''
+
     model = LeadoptModel.load(spec_model, device=device)
 
     rec_coords, rec_types = util.load_receptor_ob(path % pdb_id + lig_id + 'rec.pdb')
@@ -123,10 +140,10 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
     img = Draw.MolsToGridImage([to2d(lig)])
     img = img.save(save_path + pdb_id + lig_id + '.jpeg')
 
-    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + 'lig.sdf'], cwd='/projects/mai/users/kkxw544_magdalena/')
+    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + 'lig.sdf'])
     smina_old = prep_output(output)
 
-    with h5py.File('/projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/fingerprints.h5', 'r') as f:
+    with h5py.File('./fingerprints.h5', 'r') as f:
         f_smiles = f['smiles'][()]
         f_fingerprints = f['fingerprints'][()].astype(np.float)
     
@@ -164,7 +181,7 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
             dist_fn = DIST_FN[model._args['dist_fn']]
             dist = dist_fn(
                 torch.Tensor(avg_fp).unsqueeze(0),
-                torch.Tensor(f_fingerprints)).cuda()
+                torch.Tensor(f_fingerprints)).cpu()
 
             dist = list(dist.cpu().numpy())
             scores = list(zip(f_smiles, dist))
@@ -175,7 +192,7 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
             lig = embed_fragment(rec, parent, fragment)
             lig_sdf = tosdf(lig)
             print(lig_sdf, file=open(path % pdb_id + lig_id + '_temp.sdf', 'w+'))
-            output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_temp.sdf'], cwd='/projects/mai/users/kkxw544_magdalena/')
+            output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_temp.sdf'])
             smina_new = prep_output(output)
 
             kk = True
@@ -197,9 +214,13 @@ def interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path):
 
 def prep_liglist(pdb_id, lig_id, spec_model, k): 
 
+    '''Helper function, prepares a list containing data about the ligand and 
+    its top predicted fragments. This function is used to calculate the 
+    correlation of the smina scores of the top predicted fragments.'''
+
     model = LeadoptModel.load(spec_model, device=device)
 
-    with h5py.File('/projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/fingerprints.h5', 'r') as f:
+    with h5py.File('./fingerprints.h5', 'r') as f:
         f_smiles = f['smiles'][()]
         f_fingerprints = f['fingerprints'][()].astype(np.float)
 
@@ -241,7 +262,7 @@ def prep_liglist(pdb_id, lig_id, spec_model, k):
         dist_fn = DIST_FN[model._args['dist_fn']]
         dist = dist_fn(
             torch.Tensor(avg_fp).unsqueeze(0),
-            torch.Tensor(f_fingerprints)).cuda()
+            torch.Tensor(f_fingerprints))#.cuda()
 
         dist = list(dist.cpu().numpy())
         scores = list(zip(f_smiles, dist))
@@ -259,6 +280,12 @@ def prep_liglist(pdb_id, lig_id, spec_model, k):
 
 
 def topk_ligand_reconstruction(prot, lig, spec_model, k): 
+
+    '''
+    Not  yet functional.
+    This method was meant to choose the top scoring fragment out of a given
+    range of top-k fragments and build a new ligand with these.
+    '''
     
     lig_list = []
     data_list = [] 
@@ -433,10 +460,16 @@ def prep_output(output):
 
 
 def draw_iterative(pdb_id, lig_id, spec_model, save_path):
+
+    '''
+    Using the reconstruction function to save the new ligand as sdf file
+    and a drawing of its structure.
+    '''
+
     x = iterative_ligand_reconstruction(pdb_id, lig_id, spec_model)
     out = tosdf(x)
     print(out, file=open(path % pdb_id + lig_id + '_mult.sdf', 'w+'))
-    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_mult.sdf'], cwd='/home/kkxw544/')
+    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_mult.sdf'])
     smina_score = prep_output(output)
     img = Draw.MolsToGridImage([to2d(x)])
     img = img.save(save_path + pdb_id + lig_id + '_multilig.jpeg')
@@ -444,10 +477,16 @@ def draw_iterative(pdb_id, lig_id, spec_model, save_path):
     return smina_score
 
 def draw_interactive(pdb_id, lig_id, spec_model, save_path):
-    x = interactive_ligand_reconstruction(pdb_id, lig_id, spec_model)
+
+    '''
+    Using the reconstruction function to save the new ligand as sdf file
+    and a drawing of its structure.
+    '''
+
+    x = interactive_ligand_reconstruction(pdb_id, lig_id, spec_model, save_path)
     out = tosdf(x)
     print(out, file=open(path % pdb_id + lig_id + '_intact.sdf', 'w+'))
-    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_intact.sdf'], cwd='/home/kkxw544/')
+    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_intact.sdf'])
     smina_score = prep_output(output)
     img = Draw.MolsToGridImage([to2d(x)])
     img = img.save(save_path + pdb_id + lig_id + '_intact.jpeg')
@@ -456,10 +495,16 @@ def draw_interactive(pdb_id, lig_id, spec_model, save_path):
 
 
 def draw_topk(pdb_id, lig_id, spec_model, save_path):
+
+    '''
+    Using the reconstruction function to save the new ligand as sdf file
+    and a drawing of its structure.
+    '''
+    
     x = topk_ligand_reconstruction(pdb_id, lig_id, spec_model, k=5)
     out = tosdf(x)
     print(out, file=open(path % pdb_id + lig_id + '_new.sdf', 'w+'))
-    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_new.sdf'], cwd='/home/kkxw544/')
+    output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % pdb_id + '.pdb', "-l" + path % pdb_id + lig_id + '_new.sdf'])
     output = prep_output(output)
     smina_score = prep_output(output)
     img = Draw.MolsToGridImage([to2d(x)])
@@ -485,26 +530,27 @@ def main():
     with open(path_to_data, 'rb') as f: 
         pdb_list = pickle.load(f)
     
-    for i in pdb_list:
+    for i in pdb_list[1:]:
         
-        try:
-            x = draw_iterative(i[0], i[1], spec_model, save_path)
-            print(x)
-            y = draw_interactive(i[0], i[1], spec_model, save_path)
-            print(y)
+        #try:
+        x = draw_iterative(i[0], i[1], spec_model, save_path)
+        print(x)
+        y = draw_interactive(i[0], i[1], spec_model, save_path)
+        print(y)
             #z = draw_topk(i[0], i[1], spec_model, save_path)
             #print(z)
-        except Exception:
-            continue
+        #except Exception:
+        #   continue
 
         df = pd.read_csv(save_path + 'smina_scores.csv', names=['Affinity', 'Protein', 'Ligand'], header=None)
-    
+
+        a=0 
         for j in range(len(df['Protein'])):
             df['Protein'][j] = df['Protein'][j] + df['Ligand'][j]
             if df['Protein'][j] == i:
                 a = df['Affinity'][j]
         
-        with open(save_path + 'ligrec_s5.csv', 'a') as f:
+        with open(save_path + '.csv', 'a') as f:
             writer = csv.writer(f)
             writer.writerow([i, a, x, y])
 

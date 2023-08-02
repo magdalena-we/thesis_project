@@ -52,7 +52,7 @@ def apply_workflow(prot, lig, spec_model, save_path):
             for bestlig in bestlig_list:
                 bestlig_sdf = tosdf(bestlig)
                 print(bestlig_sdf, file=open(path % prot + lig + '_rec.sdf', 'w+'), flush=True)
-                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + '_rec.sdf'], cwd='/projects/mai/users/kkxw544_magdalena/')
+                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + '_rec.sdf'], cwd='./')
                 fin_output.append(prep_output(output))
                 print(fin_output)
             mean = np.mean(fin_output)
@@ -73,8 +73,8 @@ def apply_workflow(prot, lig, spec_model, save_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--pdbs', help='path to list of protein ligand tuples')
-    parser.add_argument('--model', help='specify the model to be tested')
-    parser.add_argument('--save_path', help='path to save the output file')
+    parser.add_argument('--model', nargs="*", help='specify the model to be tested')
+    parser.add_argument('--save_path', nargs="*", help='path to save the output file')
     parser.add_argument('--x', help='specify batch')
 
 
@@ -90,10 +90,11 @@ def main():
     save_path = args_dict['save_path']
     x = int(args_dict['x'])
 
-    for i in pdb_list[x:]:
-        prot = i[0]
-        lig = i[1]
-        test = apply_workflow(prot, lig, spec_model, save_path)
+    for i in range(x, len(pdb_list), 25):
+        prot = pdb_list[i][0]
+        lig = pdb_list[i][1]
+        for m in range(len(spec_model)):
+            test = apply_workflow(prot, lig, spec_model[m], save_path[m])
 
 
 if __name__=='__main__':

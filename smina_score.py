@@ -24,7 +24,7 @@ def affinity_scores(pdb_list, save_path):
             lig = i[1]
             fin_output = []
             try:
-                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + 'lig.sdf'], cwd='./')
+                output = subprocess.check_output(["./smina.static", "--score_only", "-r" + path % prot + '.pdb', "-l" + path % prot + lig + 'lig.sdf'])
                 fin_output.append(prep_output(output))
                 fin_output.append(prot)
                 fin_output.append(lig)

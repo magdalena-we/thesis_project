@@ -82,6 +82,9 @@ def prep_data(pdb_list):
         pickle.dump(data_list, f)                
 
 ####EXAMPLE-START#############################################################
-pdb_list = mp.TEST[:10]
-x = prep_data(pdb_list)
+#pdb_list = mp.TEST[:10]
+#x = prep_data(pdb_list)
 ####EXAMPLE-END###############################################################
+
+tmp_list = ['1X38', '6QZ8', '4FOW', '5R81', '5RGH']
+x = prep_data(tmp_list)

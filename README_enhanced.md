@@ -9,9 +9,8 @@ New scripts:
 - smina_score.py
 - sminascore_split.py
 - sminatest.py
-- sminatest_eval.py
 - smina_correlation.py
-- sminacor_eval.py
+- smina_eval.py
 - ligand_reconstruction.py
 
 Scripts will be shortly documented here, there is some further documentation in the scpripts themselves and the thesis may contain helpful information.
@@ -63,9 +62,6 @@ Use case example CLI: python3 sminatest.py --pdbs ./pdb_data/protein_ligand_comp
 --save_path: give path to file, where the output is to be saved
 --x: can be used to specify startpoint in the input list
 
-sminatest_eval.py:
-Computes the average affinity score for each model so that they are comparable, means it only takes complexes into account that can be found in the output of all models to be compared.
-
 smina_correlation.py:
 This Script checks for a correlation of the smina scores for the top k specified fragments. It checks the affinity score for the protein/ligand complex with the top predicted fragment replaced, the second fragment replaced etc. until the kth fragment and saves them to a csv file. The averages are computed with sminacor_eval.py.
 Use case example CLI: python3 smina_correlation.py --pdbs /projects/mai/users/kkxw544_magdalena/deepfrag_data/protein_ligand_complexes --model /projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/models/smin_04 --save_path /projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/results/sminacor_smin04.csv --k 5 --x 0
@@ -75,20 +71,18 @@ Use case example CLI: python3 smina_correlation.py --pdbs /projects/mai/users/kk
 --k: specify up to which top predicted fragment the algorithm will check the binding affinity score
 --x: can be used to specify startpoint in the input list
 
-sminacor_eval.py:
-Computes the averages for the output files from smina_correlation.py, might need to be adjusted as the input files are specified in the script itself.
+smina_eval.py:
+This script contains functions for the evaluation and visualization of the results from sminatest.py and sminacor.py.
 
 ligand_reconstruction.py:
 Ligand_reconstruction.py provides three different methods for reconstructing ligands. The third method is not working yet. The interactive method performs best, usually the results have higher binding affinity then the original ligands. The iterative method performs usually worse. Currently the user only needs to provide  path to a pickle file containing a list of tuples of protein and ligand pdb-ids and a path for saving the output files. 
 The output is a file containing info about the protein ligand complex, the original binding affinity and the binding affinities of the reconstructed ligands. It will also save pictures of 2D structures of the different ligands.
 If the third method should be implemented the main function also needs adjustment.
 Careful: the smina_score.py needs to be run first, the output file should be saved at the direction of --save_path, can be changed in the script.
-Use case example CLI: python3 ligand_reconstruction.py --pdbs /projects/mai/users/kkxw544_magdalena/deepfrag_data/protein_ligand_complexes --model /projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/models/smin_04 --save_path /projects/mai/users/kkxw544_magdalena/deepfrag_enhanced/results/
+Use case example CLI: python3 ligand_reconstruction.py --pdbs ./pdb_data/protein_ligand_complexes --model ./models/m400_lr0001ep500 --save_path ./results/recligands/
 --pdbs: path to pickle file containing a list of tuples of pdb-protein-ids and pdb-ligand-ids
 --model: specify path to model to be used for the reconstruction
 --save_path: give path to folder, where the output is to be saved
-
-Reminder: sminates_eval and sminacor_eval were created to run from the folder /my_scripts/, they need to be adjusted to run in the main folder.
 
 Adapted Scripts:
 - model_conf.py
